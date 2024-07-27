@@ -6,12 +6,12 @@ from urllib.parse import urljoin
 import os
 from flask import Flask
 from threading import Thread
-
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
 
 # Base URL of the website
 BASE_URL = 'https://damascusuniversity.edu.sy/ite/'
+token = os.environ.get('TELEGRAM_API_TOKEN')
 
 # Define department options
 department_options = [
@@ -194,7 +194,7 @@ def keep_alive():
 def main():
     """Start the bot."""
     keep_alive()  # Start the dummy HTTP server
-    updater = Updater("TELEGRAM_API_TOKEN", use_context=True)
+    updater = Updater(token, use_context=True)
 
     dp = updater.dispatcher
 
