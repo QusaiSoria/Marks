@@ -4,6 +4,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext
 from urllib.parse import urljoin
 import os
+from flask import Flask
+from threading import Thread
 
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
@@ -175,9 +177,24 @@ def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('تم إلغاء العملية.')
     return ConversationHandler.END
 
+# Flask app for keeping Render happy
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I am alive"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
 def main():
     """Start the bot."""
-    updater = Updater("7211468470:AAGCOqhw5MJjsLYyb1HZDr4NQQDu-6H5kSA", use_context=True)
+    keep_alive()  # Start the dummy HTTP server
+    updater = Updater("TELEGRAM_API_TOKEN", use_context=True)
 
     dp = updater.dispatcher
 
