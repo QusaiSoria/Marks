@@ -167,17 +167,17 @@ def download_file(url, local_filename):
 def contact(update: Update, context: CallbackContext):
     """Send a message with the developer's contact information."""
     update.message.reply_text(
-        'يمكنك التواصل بمطور البوت من خلال المعرف : @Qusai_Salwm'
+        'يمكنك التواصل بمطور البوت من خلال المعرف : @Quasi_Salwm'
+        
     )
-
+    
 def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('تم إلغاء العملية.')
     return ConversationHandler.END
 
 def main():
     """Start the bot."""
-    token = os.environ.get('TELEGRAM_API_TOKEN')
-    updater = Updater(token, use_context=True)
+    updater = Updater("7211468470:AAGCOqhw5MJjsLYyb1HZDr4NQQDu-6H5kSA", use_context=True)
 
     dp = updater.dispatcher
 
