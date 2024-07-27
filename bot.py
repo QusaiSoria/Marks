@@ -6,11 +6,14 @@ from urllib.parse import urljoin
 import os
 from flask import Flask
 from threading import Thread
+
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
 
 # Base URL of the website
 BASE_URL = 'https://damascusuniversity.edu.sy/ite/'
+
+# Get the Telegram bot token from the environment variable
 token = os.environ.get('TELEGRAM_API_TOKEN')
 
 # Define department options
