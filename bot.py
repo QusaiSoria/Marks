@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext, JobQueue
 from urllib.parse import urljoin
 import os
 from flask import Flask
@@ -180,6 +180,13 @@ def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('تم إلغاء العملية.')
     return ConversationHandler.END
 
+def periodic_task(context: CallbackContext):
+    """Task to be executed periodically."""
+    context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text="Running periodic task...")
+    # Here you can call any function or perform any task you need to run periodically.
+    # For example, fetch_and_process_data can be called if you want to fetch and process data periodically.
+    # update and context should be properly passed or mocked.
+
 # Flask app for keeping Render happy
 app = Flask('')
 
@@ -198,7 +205,7 @@ def main():
     """Start the bot."""
     keep_alive()  # Start the dummy HTTP server
     updater = Updater(token, use_context=True)
-
+    
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
@@ -216,6 +223,12 @@ def main():
     # Add handler for the contact command
     dp.add_handler(CommandHandler('contact', contact))
 
+    # Get the job queue
+    job_queue = updater.job_queue
+
+    # Schedule the periodic task every 40 seconds
+    job_queue.run_repeating(periodic_task, interval=40, first=0)
+    
     updater.start_polling()
     updater.idle()
 
