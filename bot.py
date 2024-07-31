@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import os
 from flask import Flask
 from threading import Thread
-
+import uuid
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
 
@@ -99,7 +99,7 @@ def get_season(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 def fetch_and_process_data(update: Update, context: CallbackContext):
-    """Fetch and process data based on user inputs and upload the files."""
+    """Fetch and process data based on user inputs and prepare the files."""
     post_data = {
         'func': '2',  # Function
         'set': '14',  # Set
@@ -115,49 +115,140 @@ def fetch_and_process_data(update: Update, context: CallbackContext):
 
     url = 'https://damascusuniversity.edu.sy/ite/index.php'
 
-    try:
-        response = requests.post(url, data=post_data, verify=False)
-        response.encoding = 'utf-8'
-        soup = BeautifulSoup(response.text, 'html.parser')
+    def fetch_page_data(url, post_data):
+        """Fetch data from a single page."""
+        try:
+            response = requests.post(url, data=post_data, verify=False)
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.text, 'html.parser')
+            return soup
+        except requests.RequestException as e:
+            update.effective_chat.send_message(f"فشل في جلب البيانات: {str(e)}")
+            return None
+
+    def process_table(soup):
+        """Process the table data from the soup."""
         table = soup.find('table', {'border': '1'})
         if not table:
-            update.effective_chat.send_message('لم يتم العثور على بيانات للمعايير المحددة.')
-            return
-        
+            return []
+
         rows = table.find_all('tr')
         if len(rows) <= 1:
-            update.effective_chat.send_message('لم يتم العثور على بيانات للمعايير المحددة.')
-            return
+            return []
 
-        files_sent = 0
+        files = []
         for row in rows[1:]:
             cells = row.find_all('td')
             if len(cells) >= 7:
                 title = cells[0].get_text(strip=True)
-                department = cells[1].get_text(strip=True)
-                year = cells[2].get_text(strip=True)
-                academic_year = cells[3].get_text(strip=True)
-                season = cells[4].get_text(strip=True)
-                teacher = cells[5].get_text(strip=True)
                 link_tag = cells[6].find('a', href=True)
                 if link_tag:
                     link = link_tag['href']
                     download_link = urljoin(BASE_URL, link)
-                    local_filename = os.path.basename(download_link)
-                    if download_file(download_link, local_filename):
-                        context.bot.send_document(chat_id=update.effective_chat.id, document=open(local_filename, 'rb'))
-                        os.remove(local_filename)
-                        files_sent += 1
-                    else:
-                        update.effective_chat.send_message(f'فشل في تنزيل الملف: {title}')
-        
-        if files_sent > 0:
-            update.effective_chat.send_message('تم إرسال جميع الملفات بنجاح.')
-        else:
-            update.effective_chat.send_message('لم يتم العثور على ملفات لإرسالها.')
+                    files.append((title, download_link))
+        return files
 
-    except requests.RequestException as e:
-        update.effective_chat.send_message(f"فشل في جلب البيانات: {str(e)}")
+    def get_pagination_links(soup):
+        """Get pagination links from the soup."""
+        pagination_table = soup.find('table', {'align': 'center', 'width': '100%', 'border': '0', 'dir': 'rtl'})
+        if not pagination_table:
+            return []
+
+        links = pagination_table.find_all('a', {'class': 'blankblueLink2'})
+        return [urljoin(url, link['href']) for link in links]
+
+    soup = fetch_page_data(url, post_data)
+    if not soup:
+        return
+
+    files = process_table(soup)
+    if not files:
+        update.effective_chat.send_message('لم يتم العثور على بيانات للمعايير المحددة.')
+        return
+
+    pagination_links = get_pagination_links(soup)
+    for link in pagination_links:
+        soup = fetch_page_data(link, post_data)
+        if soup:
+            files.extend(process_table(soup))
+
+    if files:
+        show_files_as_buttons(update, context, files)
+    else:
+        update.effective_chat.send_message('لم يتم العثور على ملفات لإرسالها.')
+
+def show_files_as_buttons(update: Update, context: CallbackContext, files):
+    """Show the files as buttons to the user with pagination."""
+    context.user_data['files'] = files
+    context.user_data['file_mapping'] = {}
+    context.user_data['current_page'] = 0
+
+    show_page(update, context)
+
+def show_page(update: Update, context: CallbackContext):
+    """Show a specific page of file buttons."""
+    files = context.user_data['files']
+    file_mapping = context.user_data['file_mapping']
+    current_page = context.user_data['current_page']
+    files_per_page = 12
+
+    start_index = current_page * files_per_page
+    end_index = start_index + files_per_page
+    page_files = files[start_index:end_index]
+
+    keyboard = []
+    for title, link in page_files:
+        identifier = str(uuid.uuid4())
+        file_mapping[identifier] = link
+        keyboard.append([InlineKeyboardButton(title, callback_data=identifier)])
+
+    # Add navigation buttons if needed
+    navigation_buttons = []
+    if current_page > 0:
+        navigation_buttons.append(InlineKeyboardButton('السابق', callback_data='prev_page'))
+    if end_index < len(files):
+        navigation_buttons.append(InlineKeyboardButton('التالي', callback_data='next_page'))
+    
+    if navigation_buttons:
+        keyboard.append(navigation_buttons)
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.callback_query:
+        update.callback_query.edit_message_text('اختر الملف الذي تريد تحميله:', reply_markup=reply_markup)
+    else:
+        update.message.reply_text('اختر الملف الذي تريد تحميله:', reply_markup=reply_markup)
+
+def send_file(update: Update, context: CallbackContext):
+    """Send the file when a button is clicked or handle pagination."""
+    query = update.callback_query
+    query.answer()
+    data = query.data
+
+    if data == 'prev_page':
+        context.user_data['current_page'] -= 1
+        show_page(update, context)
+    elif data == 'next_page':
+        context.user_data['current_page'] += 1
+        show_page(update, context)
+    else:
+        file_url = context.user_data['file_mapping'].get(data)
+        if file_url:
+            # Send the "wait" sticker
+            sticker_id = 'CAACAgQAAxkBAAEs6VxmqsXDjnmbmVbkueGsCBwF4BV9IgACSAoAAip5uFBmuCZY8V1p3zUE'  # Example sticker ID
+            wait_message = query.message.reply_sticker(sticker_id)
+            
+            local_filename = os.path.basename(file_url)
+            if download_file(file_url, local_filename):
+                context.bot.send_document(chat_id=update.effective_chat.id, document=open(local_filename, 'rb'))
+                os.remove(local_filename)
+            else:
+                query.message.reply_text('فشل في تنزيل الملف.')
+            
+            # Delete the "wait" sticker
+            context.bot.delete_message(chat_id=wait_message.chat_id, message_id=wait_message.message_id)
+        else:
+            query.message.reply_text('فشل في العثور على الرابط.')
+
 
 def download_file(url, local_filename):
     response = requests.get(url, stream=True)
@@ -220,14 +311,11 @@ def main():
 
     dp.add_handler(conv_handler)
     
+    # Add handler for file button clicks and pagination
+    dp.add_handler(CallbackQueryHandler(send_file, pattern='^[a-f0-9\-]+$|prev_page|next_page'))
+
     # Add handler for the contact command
     dp.add_handler(CommandHandler('contact', contact))
-
-    # Get the job queue
-    job_queue = updater.job_queue
-
-    # Schedule the periodic task every 40 seconds
-    job_queue.run_repeating(periodic_task, interval=40, first=0)
     
     updater.start_polling()
     updater.idle()
