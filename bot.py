@@ -7,6 +7,7 @@ import os
 from flask import Flask
 from threading import Thread
 import uuid
+
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
 
@@ -205,12 +206,16 @@ def show_page(update: Update, context: CallbackContext):
     # Add navigation buttons if needed
     navigation_buttons = []
     if current_page > 0:
-        navigation_buttons.append(InlineKeyboardButton('السابق', callback_data='prev_page'))
+        navigation_buttons.append(InlineKeyboardButton('⬅️', callback_data='prev_page'))
     if end_index < len(files):
-        navigation_buttons.append(InlineKeyboardButton('التالي', callback_data='next_page'))
+        navigation_buttons.append(InlineKeyboardButton('➡️', callback_data='next_page'))
     
     if navigation_buttons:
         keyboard.append(navigation_buttons)
+    
+    # Add a download all button if there are files
+    if files:
+        keyboard.append([InlineKeyboardButton('📦 تحميل جميع الملفات', callback_data='download_all')])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
@@ -230,6 +235,8 @@ def send_file(update: Update, context: CallbackContext):
     elif data == 'next_page':
         context.user_data['current_page'] += 1
         show_page(update, context)
+    elif data == 'download_all':
+        download_all_files(update, context)
     else:
         file_url = context.user_data['file_mapping'].get(data)
         if file_url:
@@ -249,6 +256,20 @@ def send_file(update: Update, context: CallbackContext):
         else:
             query.message.reply_text('فشل في العثور على الرابط.')
 
+def download_all_files(update: Update, context: CallbackContext):
+    """Download and send all files to the user."""
+    files = context.user_data['files']
+    if not files:
+        update.callback_query.message.reply_text('لم يتم العثور على ملفات لتنزيلها.')
+        return
+
+    for title, file_url in files:
+        local_filename = os.path.basename(file_url)
+        if download_file(file_url, local_filename):
+            context.bot.send_document(chat_id=update.effective_chat.id, document=open(local_filename, 'rb'))
+            os.remove(local_filename)
+        else:
+            update.callback_query.message.reply_text(f'فشل في تنزيل الملف: {title}')
 
 def download_file(url, local_filename):
     response = requests.get(url, stream=True)
@@ -312,7 +333,7 @@ def main():
     dp.add_handler(conv_handler)
     
     # Add handler for file button clicks and pagination
-    dp.add_handler(CallbackQueryHandler(send_file, pattern='^[a-f0-9\-]+$|prev_page|next_page'))
+    dp.add_handler(CallbackQueryHandler(send_file, pattern='^[a-f0-9\-]+$|prev_page|next_page|download_all'))
 
     # Add handler for the contact command
     dp.add_handler(CommandHandler('contact', contact))
