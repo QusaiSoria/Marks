@@ -263,7 +263,7 @@ def download_file(url, local_filename):
 def contact(update: Update, context: CallbackContext):
     """Send a message with the developer's contact information."""
     update.message.reply_text(
-        'يمكنك التواصل بمطور البوت من خلال المعرف : @Quasi_Salwm'
+        'يمكنك التواصل بمطور البوت من خلال المعرف : @Qusai_Salwm'
         
     )
     
