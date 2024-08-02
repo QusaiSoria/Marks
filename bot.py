@@ -230,14 +230,17 @@ def show_page(update: Update, context: CallbackContext):
         file_mapping[identifier] = link
         keyboard.append([InlineKeyboardButton(title, callback_data=identifier)])
 
-    # Add pagination information
-    total_pages = (len(files) + files_per_page - 1) / files_per_page
-    keyboard.append([InlineKeyboardButton(f"Page {current_page + 1} of {total_pages}", callback_data='noop')])
+    # Calculate the total number of pages
+    total_pages = (len(files) + files_per_page - 1) // files_per_page
 
     # Add navigation buttons if needed
     navigation_buttons = []
     if current_page > 0:
         navigation_buttons.append(InlineKeyboardButton('⬅️', callback_data='prev_page'))
+    
+    # Add page number information
+    navigation_buttons.append(InlineKeyboardButton(f"{current_page + 1}/{total_pages}", callback_data='noop'))
+    
     if end_index < len(files):
         navigation_buttons.append(InlineKeyboardButton('➡️', callback_data='next_page'))
 
