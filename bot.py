@@ -297,6 +297,9 @@ def download_all_files(update: Update, context: CallbackContext):
         update.callback_query.message.reply_text('لم يتم العثور على ملفات لتنزيلها.')
         return
 
+    # Inform the user that the files are being downloaded
+    update.callback_query.message.reply_text('جاري تنزيل الملفات...')
+
     for title, file_url in files:
         local_filename = os.path.basename(file_url)
         if download_file(file_url, local_filename):
@@ -304,6 +307,9 @@ def download_all_files(update: Update, context: CallbackContext):
             os.remove(local_filename)
         else:
             update.callback_query.message.reply_text(f'فشل في تنزيل الملف: {title}')
+
+    # Inform the user that all files have been downloaded
+    update.callback_query.message.reply_text('تم تنزيل جميع الملفات بنجاح.')
 
 def download_file(url, local_filename):
     response = requests.get(url, stream=True)
