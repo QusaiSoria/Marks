@@ -237,10 +237,10 @@ def show_page(update: Update, context: CallbackContext):
     navigation_buttons = []
     if current_page > 0:
         navigation_buttons.append(InlineKeyboardButton('⬅️', callback_data='prev_page'))
-    
+
     # Add page number information
-    navigation_buttons.append(InlineKeyboardButton(f"{current_page + 1}/{total_pages}", callback_data='noop'))
-    
+    navigation_buttons.append(InlineKeyboardButton(f" 📄 {current_page + 1}/{total_pages}", callback_data='noop'))
+
     if end_index < len(files):
         navigation_buttons.append(InlineKeyboardButton('➡️', callback_data='next_page'))
 
@@ -249,7 +249,7 @@ def show_page(update: Update, context: CallbackContext):
 
     # Add a download all button if there are files
     if files:
-        keyboard.append([InlineKeyboardButton('📦 تحميل جميع الملفات', callback_data='download_all')])
+        keyboard.append([InlineKeyboardButton(f'📦 تحميل جميع الملفات ({len(files)})', callback_data='download_all')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
