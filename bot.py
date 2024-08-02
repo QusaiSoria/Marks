@@ -230,20 +230,24 @@ def show_page(update: Update, context: CallbackContext):
         file_mapping[identifier] = link
         keyboard.append([InlineKeyboardButton(title, callback_data=identifier)])
 
+    # Add pagination information
+    total_pages = (len(files) + files_per_page - 1) / files_per_page
+    keyboard.append([InlineKeyboardButton(f"Page {current_page + 1} of {total_pages}", callback_data='noop')])
+
     # Add navigation buttons if needed
     navigation_buttons = []
     if current_page > 0:
         navigation_buttons.append(InlineKeyboardButton('⬅️', callback_data='prev_page'))
     if end_index < len(files):
         navigation_buttons.append(InlineKeyboardButton('➡️', callback_data='next_page'))
-    
+
     if navigation_buttons:
         keyboard.append(navigation_buttons)
-    
+
     # Add a download all button if there are files
     if files:
         keyboard.append([InlineKeyboardButton('📦 تحميل جميع الملفات', callback_data='download_all')])
-    
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
         update.callback_query.edit_message_text('اختر الملف الذي تريد تحميله:', reply_markup=reply_markup)
