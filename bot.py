@@ -16,6 +16,11 @@ BASE_URL = 'https://damascusuniversity.edu.sy/ite/'
 
 # Get the Telegram bot token from the environment variable
 token = os.environ.get('TELEGRAM_API_TOKEN')
+another_bot_token = os.environ.get('ANOTHER_BOT_TOKEN')
+another_bot_chat_id = os.environ.get('CHAT_ID')
+
+# In-memory dictionary to track the number of times users clicked start
+user_start_count = {}
 
 # Define department options
 department_options = [
@@ -44,6 +49,18 @@ season_options = [
 
 def start(update: Update, context: CallbackContext) -> int:
     """Send a message when the command /start is issued."""
+    user_id = update.message.from_user.id
+    username = update.message.from_user.username
+
+    # Increment the start count for the user
+    if user_id in user_start_count:
+        user_start_count[user_id] += 1
+    else:
+        user_start_count[user_id] = 1
+
+    # Send a message to another bot
+    send_message_to_another_bot(user_id, username, user_start_count[user_id])
+
     keyboard = [
         [InlineKeyboardButton(text, callback_data=value)] for text, value in department_options
     ]
@@ -54,6 +71,16 @@ def start(update: Update, context: CallbackContext) -> int:
         reply_markup=reply_markup
     )
     return DEPARTMENT_ID
+
+def send_message_to_another_bot(user_id, username, start_count):
+    """Send a message to another bot with the user's information."""
+    message = f"User ID: {user_id}\nUsername: @{username}\nStart Count: {start_count}"
+    url = f"https://api.telegram.org/bot{another_bot_token}/sendMessage"
+    data = {
+        "chat_id": another_bot_chat_id,
+        "text": message
+    }
+    requests.post(url, data=data)
 
 def get_department_id(update: Update, context: CallbackContext) -> int:
     """Get the department_id from the user."""
