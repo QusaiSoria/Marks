@@ -334,7 +334,7 @@ def cancel(update: Update, context: CallbackContext) -> int:
 
 def periodic_task(context: CallbackContext):
     """Task to be executed periodically."""
-    context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text="Running periodic task...")
+    context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text="/contact")
     # Here you can call any function or perform any task you need to run periodically.
     # For example, fetch_and_process_data can be called if you want to fetch and process data periodically.
     # update and context should be properly passed or mocked.
