@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext, JobQueue
 from urllib.parse import urljoin
 import os
@@ -334,10 +334,9 @@ def cancel(update: Update, context: CallbackContext) -> int:
 
 def periodic_task(context: CallbackContext):
     """Task to be executed periodically."""
-    context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text="/contact")
-    # Here you can call any function or perform any task you need to run periodically.
-    # For example, fetch_and_process_data can be called if you want to fetch and process data periodically.
-    # update and context should be properly passed or mocked.
+    # Create a fake Update object to simulate the /contact command
+    update = Update(update_id=0, message=context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text='/contact'))
+    contact(update, context)
 
 # Flask app for keeping Render happy
 app = Flask('')
