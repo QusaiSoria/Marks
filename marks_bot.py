@@ -15,9 +15,9 @@ DEPARTMENT_ID, YEAR, SEASON = range(3)
 BASE_URL = 'https://damascusuniversity.edu.sy/ite/'
 
 # Get the Telegram bot token from the environment variable
-token = os.environ.get('TELEGRAM_API_TOKEN')
-another_bot_token = os.environ.get('ANOTHER_BOT_TOKEN')
-another_bot_chat_id = os.environ.get('CHAT_ID')
+token = '7211468470:AAGCOqhw5MJjsLYyb1HZDr4NQQDu-6H5kSA'
+another_bot_token = '7445301702:AAHi3yqzGQIh4XXIQZSWyen1k_6QoddbUGw'
+another_bot_chat_id = 819385459
 
 # In-memory dictionary to track the number of times users clicked start
 user_start_count = {}
@@ -33,11 +33,13 @@ department_options = [
 
 # Define year options
 year_options = [
+    ('2025', '2025'),
     ('2024', '2024'),
     ('2023', '2023'),
     ('2022', '2022'),
     ('2021', '2021'),
-    ('2020', '2020')
+    ('2020', '2020'),
+    
 ]
 
 # Define season options
@@ -275,7 +277,7 @@ def send_file(update: Update, context: CallbackContext):
         file_url = context.user_data['file_mapping'].get(data)
         if file_url:
             # Send the "wait" sticker
-            sticker_id = 'CAACAgQAAxkBAAEs6VxmqsXDjnmbmVbkueGsCBwF4BV9IgACSAoAAip5uFBmuCZY8V1p3zUE'  # Example sticker ID
+            sticker_id = 'CAACAgQAAxkBAALq9WeRSdM9hkXoRxz6bg7-i0gplncGAAJdAAOp1HEBioo4tsUUfq0eBA'  # Example sticker ID
             wait_message = query.message.reply_sticker(sticker_id)
             
             local_filename = os.path.basename(file_url)
