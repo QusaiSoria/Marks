@@ -334,32 +334,15 @@ def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('تم إلغاء العملية.')
     return ConversationHandler.END
 
-def periodic_task(context: CallbackContext):
-    """Task to be executed periodically."""
-    # Create a fake Update object to simulate the /contact command
-    update = Update(update_id=0, message=context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text='/contact'))
-    contact(update, context)
+async def periodic_task(context: CallbackContext):
+    await context.bot.send_message(chat_id=os.environ.get('CHAT_ID'), text='/contact')
 
-# Flask app for keeping Render happy
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "I am alive"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
 
 def main():
     """Start the bot."""
     keep_alive()  # Start the dummy HTTP server
-    updater = Updater(token, use_context=True)
-    
-    dp = updater.dispatcher
+
+    app = Application.builder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -371,23 +354,16 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)]
     )
 
-    dp.add_handler(conv_handler)
-    
+    app.add_handler(conv_handler)
+
     # Add handler for file button clicks and pagination
-    dp.add_handler(CallbackQueryHandler(send_file, pattern='^[a-f0-9\-]+$|prev_page|next_page|download_all'))
+    app.add_handler(CallbackQueryHandler(send_file, pattern=r'^[a-f0-9\-]+$|prev_page|next_page|download_all'))
 
     # Add handler for the contact command
-    dp.add_handler(CommandHandler('contact', contact))
-    
-    # Get the job queue
-    job_queue = updater.job_queue
+    app.add_handler(CommandHandler('contact', contact))
 
     # Schedule the periodic task every 40 seconds
+    job_queue = app.job_queue
     job_queue.run_repeating(periodic_task, interval=40, first=0)
 
-    
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
-    main()
+    app.run_polling()
