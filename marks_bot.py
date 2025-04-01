@@ -1,12 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext, JobQueue
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, CallbackContext, JobQueue,Application
 from urllib.parse import urljoin
 import os
 from flask import Flask
 from threading import Thread
 import uuid
+
 
 # Define constants for the conversation states
 DEPARTMENT_ID, YEAR, SEASON = range(3)
